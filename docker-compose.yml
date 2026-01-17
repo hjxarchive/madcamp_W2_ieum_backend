@@ -8,7 +8,7 @@ services:
     environment:
       POSTGRES_DB: ieum_db
       POSTGRES_USER: hjxarchive
-      POSTGRES_PASSWORD: ieum2580-!
+      POSTGRES_PASSWORD: "ieum2580-!""
     ports:
       - "5432:5432"
     volumes:
@@ -18,11 +18,21 @@ services:
   app:
     build: .
     container_name: spring-app
-    ports:
-      - "8080:8080"
+    #ports:
+    #  - "8080:8080"
     depends_on:
       - db # DB가 먼저 뜬 후에 앱이 실행되도록 설정
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/mydb
-      SPRING_DATASOURCE_USERNAME: user
-      SPRING_DATASOURCE_PASSWORD: password
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/ieum_db
+      SPRING_DATASOURCE_USERNAME: hjxarchive
+      SPRING_DATASOURCE_PASSWORD: "ieum2580-!"
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx-proxy
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - app

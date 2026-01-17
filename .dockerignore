@@ -4,3 +4,4 @@ build/
 *.md
 Dockerfile
 .dockerignore
+postgres_data/

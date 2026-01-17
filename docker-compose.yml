@@ -8,7 +8,7 @@ services:
     environment:
       POSTGRES_DB: ieum_db
       POSTGRES_USER: hjxarchive
-      POSTGRES_PASSWORD: "ieum2580-!""
+      POSTGRES_PASSWORD: "ieum2580-!"
     ports:
       - "5432:5432"
     volumes:

@@ -4,7 +4,7 @@ spring:
   datasource:
     url: jdbc:postgresql://db:5432/ieum_db
     username: hjxarchive
-    password: ieum2580-!
+    password: "ieum2580-!"
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:

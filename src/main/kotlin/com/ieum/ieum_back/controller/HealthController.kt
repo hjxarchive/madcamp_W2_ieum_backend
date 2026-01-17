@@ -1,4 +1,4 @@
-package com.example.ieum.controller
+package com.ieum.ieum_back.controller
 
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RestController

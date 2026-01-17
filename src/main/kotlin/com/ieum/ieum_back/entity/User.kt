@@ -1,4 +1,4 @@
-package com.example.ieum.entity
+package com.ieum.ieum_back.controller
 
 import jakarta.persistence.*
 

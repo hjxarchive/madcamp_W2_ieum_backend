@@ -1,4 +1,4 @@
-package com.example.ieum.repository
+package com.ieum.ieum_back.controller
 
 import com.example.ieum.entity.User
 import org.springframework.data.jpa.repository.JpaRepository

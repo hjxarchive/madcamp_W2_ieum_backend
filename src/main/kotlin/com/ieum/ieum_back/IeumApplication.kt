@@ -1,4 +1,4 @@
-package com.example.ieum
+package com.ieum.ieum_back
 
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication

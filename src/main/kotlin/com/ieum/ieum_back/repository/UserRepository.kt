@@ -1,6 +1,6 @@
-package com.ieum.ieum_back.controller
+package com.ieum.ieum_back.repository
 
-import com.example.ieum.entity.User
+import com.ieum.ieum_back.entity.User
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.stereotype.Repository
 

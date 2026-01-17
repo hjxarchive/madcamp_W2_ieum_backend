@@ -1,7 +1,7 @@
-package com.example.ieum.controller
+package com.ieum.ieum_back.controller
 
-import com.example.ieum.entity.User
-import com.example.ieum.repository.UserRepository
+import com.ieum.ieum_back.entity.User
+import com.ieum.ieum_back.repository.UserRepository
 import org.springframework.web.bind.annotation.*
 
 @RestController

@@ -26,7 +26,7 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/ieum_db
       SPRING_DATASOURCE_USERNAME: hjxarchive
       SPRING_DATASOURCE_PASSWORD: "ieum2580-!"
-      GOOGLE_CLIENT_ID: 1088305482605-n4fnsouvlkf5md5ej2nllvpjuev666dd.apps.googleusercontent.com
+      GOOGLE_CLIENT_IDS: 1088305482605-hfqq6q54rf00bns3l6bnamu9gl3cg27p.apps.googleusercontent.com,1088305482605-6u7jg08cfc7p2omhk31t0iatkqfqbeag.apps.googleusercontent.com,1088305482605-n4fnsouvlkf5md5ej2nllvpjuev666dd.apps.googleusercontent.com
       JWT_SECRET: 50Ykjh0ayk/ues8xTfAwJgvBpq27uR0rUrAq8tC89GBxoiiEhEPpQmkirUR2Twtu
     env_file:
       - .env

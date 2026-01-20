@@ -15,6 +15,7 @@ import com.ieum.ieum_back.repository.UserRepository
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import org.slf4j.LoggerFactory
 import java.util.*
 
 @Service
@@ -22,12 +23,16 @@ import java.util.*
 class AuthService(
     private val userRepository: UserRepository,
     private val jwtProvider: JwtProvider,
-    @Value("\${google.client-id}")
-    private val googleClientId: String
+    @Value("\${google.client-ids}")
+    private val googleClientIds: List<String>
 ) {
+    private val logger = LoggerFactory.getLogger(AuthService::class.java)
+    
     private val verifier: GoogleIdTokenVerifier by lazy {
+        logger.info("🔑 Initializing Google ID Token Verifier")
+        logger.info("📋 Allowed Client IDs: $googleClientIds")
         GoogleIdTokenVerifier.Builder(NetHttpTransport(), GsonFactory.getDefaultInstance())
-            .setAudience(listOf(googleClientId))
+            .setAudience(googleClientIds)  // 여러 Client ID 지원
             .build()
     }
 
@@ -55,17 +60,37 @@ class AuthService(
     }
 
     private fun verifyGoogleToken(idToken: String): GoogleUserInfo {
+        logger.info("🔍 Verifying Google ID Token")
+        logger.debug("Token (first 50 chars): ${idToken.take(50)}...")
+        
         val googleIdToken: GoogleIdToken? = try {
             verifier.verify(idToken)
         } catch (e: Exception) {
+            logger.error("❌ Google token verification failed: ${e.javaClass.simpleName}")
+            logger.error("❌ Error message: ${e.message}")
+            logger.error("❌ Stack trace:", e)
             throw UnauthorizedException("Invalid Google token: ${e.message}")
         }
 
         if (googleIdToken == null) {
+            logger.error("❌ Google token is null after verification")
+            logger.error("❌ Possible reasons:")
+            logger.error("   - Token expired")
+            logger.error("   - Wrong audience (aud)")
+            logger.error("   - Invalid signature")
+            logger.error("   - Token issued by wrong issuer")
             throw UnauthorizedException("Invalid Google token")
         }
 
         val payload = googleIdToken.payload
+        logger.info("✅ Token verified successfully")
+        logger.info("📧 Email: ${payload.email}")
+        logger.info("🆔 Google ID: ${payload.subject}")
+        logger.info("👤 Name: ${payload["name"]}")
+        logger.info("🎯 Audience (aud): ${payload.audience}")
+        logger.info("🏢 Issuer (iss): ${payload.issuer}")
+        logger.info("⏰ Expiration: ${payload.expirationTimeSeconds}")
+        logger.info("⏰ Current time: ${System.currentTimeMillis() / 1000}")
 
         return GoogleUserInfo(
             googleId = payload.subject,  // Google 고유 사용자 ID

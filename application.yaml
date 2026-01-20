@@ -1,0 +1,31 @@
+spring:
+  application:
+    name: ieum_back
+  datasource:
+    url: jdbc:postgresql://db:5432/ieum_db
+    username: hjxarchive
+    password: "ieum2580-!"
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+# Google OAuth 설정
+google:
+  client-ids:
+    - 1088305482605-hfqq6q54rf00bns3l6bnamu9gl3cg27p.apps.googleusercontent.com  # 웹
+    - 1088305482605-n4fnsouvlkf5md5ej2nllvpjuev666dd.apps.googleusercontent.com  # Android
+
+# JWT 설정
+jwt:
+  secret: 50Ykjh0ayk/ues8xTfAwJgvBpq27uR0rUrAq8tC89GBxoiiEhEPpQmkirUR2Twtu
+  expiration: 604800000  # 7일 (밀리초)
+
+# 파일 업로드 설정
+app:
+  file:
+    base-url: ${FILE_BASE_URL:http://localhost:8080/api/files}

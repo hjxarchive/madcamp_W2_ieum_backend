@@ -14,9 +14,19 @@ spring:
       hibernate:
         format_sql: true
 
+# 로깅 설정
+logging:
+  level:
+    root: INFO
+    com.ieum.ieum_back: DEBUG
+    org.springframework.web: DEBUG
+
 # Google OAuth 설정
 google:
-  client-id: 1088305482605-hfqq6q54rf00bns3l6bnamu9gl3cg27p.apps.googleusercontent.com
+  client-ids:
+    - 1088305482605-hfqq6q54rf00bns3l6bnamu9gl3cg27p.apps.googleusercontent.com  # 웹
+    - 1088305482605-6u7jg08cfc7p2omhk31t0iatkqfqbeag.apps.googleusercontent.com  # Android 1
+    - 1088305482605-n4fnsouvlkf5md5ej2nllvpjuev666dd.apps.googleusercontent.com  # Android 2
 
 # JWT 설정
 jwt:

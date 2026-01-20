@@ -5,7 +5,7 @@ data class MbtiQuestion(
     val question: String,
     val optionA: String,
     val optionB: String,
-    val dimension: String // E-I, S-N, T-F, J-P
+    val dimension: String // MI (소비 성향), DT (갈등 해결), EC (도전 성향), PF (데이트 계획)
 )
 
 data class MbtiQuestionsResponse(
@@ -17,8 +17,8 @@ data class MbtiSubmitRequest(
 )
 
 data class MbtiSubmitResponse(
-    val mbtiType: String,
-    val details: Map<String, Int> // E: 70, I: 30, ...
+    val mbtiType: String, // MDEP, ITCF 등 16가지 조합
+    val details: Map<String, Int> // M: 7, I: 2, D: 5, T: 4, E: 6, C: 3, P: 8, F: 1 (각 9점 만점)
 )
 
 data class MbtiCoupleResultResponse(

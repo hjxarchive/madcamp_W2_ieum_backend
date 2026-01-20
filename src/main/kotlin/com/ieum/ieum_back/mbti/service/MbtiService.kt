@@ -4,6 +4,7 @@ import com.ieum.ieum_back.exception.BadRequestException
 import com.ieum.ieum_back.exception.NotFoundException
 import com.ieum.ieum_back.mbti.dto.*
 import com.ieum.ieum_back.repository.UserRepository
+import org.springframework.messaging.simp.SimpMessagingTemplate
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
@@ -12,7 +13,8 @@ import java.util.*
 @Service
 @Transactional
 class MbtiService(
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val messagingTemplate: SimpMessagingTemplate
 ) {
     private val questions = listOf(
         MbtiQuestion(1, "파티에서 나는?", "여러 사람과 어울리며 에너지를 얻는다", "소수의 친한 사람들과 깊은 대화를 나눈다", "EI"),
@@ -72,6 +74,22 @@ class MbtiService(
         user.mbtiAnswers = request.answers.mapKeys { it.key.toString() }
         user.updatedAt = LocalDateTime.now()
         userRepository.save(user)
+
+        // 🔔 파트너에게 MBTI 업데이트 알림 (WebSocket)
+        user.couple?.let { couple ->
+            val partnerId = if (couple.user1Id == userId) couple.user2Id else couple.user1Id
+            partnerId?.let {
+                messagingTemplate.convertAndSend(
+                    "/topic/couple/${couple.id}",
+                    mapOf(
+                        "type" to "MBTI_UPDATED",
+                        "userId" to userId.toString(),
+                        "mbtiType" to mbtiType,
+                        "timestamp" to LocalDateTime.now()
+                    )
+                )
+            }
+        }
 
         val details = mapOf(
             "E" to (scores["E"]!! * 100 / 3),

@@ -5,6 +5,7 @@ import com.ieum.ieum_back.entity.Bucket
 import com.ieum.ieum_back.exception.NotFoundException
 import com.ieum.ieum_back.repository.BucketRepository
 import com.ieum.ieum_back.repository.UserRepository
+import org.springframework.messaging.simp.SimpMessagingTemplate
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
@@ -14,7 +15,8 @@ import java.util.*
 @Transactional
 class BucketService(
     private val bucketRepository: BucketRepository,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val messagingTemplate: SimpMessagingTemplate
 ) {
 
     fun createBucket(userId: UUID, request: CreateBucketRequest): BucketResponse {
@@ -30,7 +32,13 @@ class BucketService(
             category = request.category
         )
 
-        return BucketResponse.from(bucketRepository.save(bucket))
+        val savedBucket = bucketRepository.save(bucket)
+        val response = BucketResponse.from(savedBucket)
+        
+        // WebSocket 브로드캐스트
+        broadcastBucketSync(couple.id!!, "ADDED", response, userId)
+        
+        return response
     }
 
     @Transactional(readOnly = true)
@@ -56,6 +64,8 @@ class BucketService(
         val bucket = bucketRepository.findByIdAndCoupleAndDeletedAtIsNull(bucketId, couple)
             ?: throw NotFoundException("Bucket not found")
 
+        var wasCompleted = bucket.isCompleted
+        
         request.title?.let { bucket.title = it }
         request.description?.let { bucket.description = it }
         request.category?.let { bucket.category = it }
@@ -70,7 +80,14 @@ class BucketService(
             }
         }
 
-        return BucketResponse.from(bucketRepository.save(bucket))
+        val savedBucket = bucketRepository.save(bucket)
+        val response = BucketResponse.from(savedBucket)
+        
+        // WebSocket 브로드캐스트 - 완료 상태 변경 시 COMPLETED, 아니면 UPDATED
+        val eventType = if (!wasCompleted && response.isCompleted) "COMPLETED" else "UPDATED"
+        broadcastBucketSync(couple.id!!, eventType, response, userId)
+        
+        return response
     }
 
     fun deleteBucket(userId: UUID, bucketId: UUID) {
@@ -82,6 +99,24 @@ class BucketService(
             ?: throw NotFoundException("Bucket not found")
 
         bucket.deletedAt = LocalDateTime.now()
-        bucketRepository.save(bucket)
+        val savedBucket = bucketRepository.save(bucket)
+        val response = BucketResponse.from(savedBucket)
+        
+        // WebSocket 브로드캐스트
+        broadcastBucketSync(couple.id!!, "DELETED", response, userId)
+    }
+    
+    /**
+     * 버킷리스트 WebSocket 실시간 동기화 브로드캐스트
+     */
+    private fun broadcastBucketSync(coupleId: UUID, eventType: String, bucketResponse: BucketResponse, userId: UUID) {
+        val message = BucketSyncMessage(
+            eventType = eventType,
+            bucket = BucketDto.from(bucketResponse),
+            userId = userId.toString(),
+            timestamp = LocalDateTime.now().toString()
+        )
+        
+        messagingTemplate.convertAndSend("/topic/couple/$coupleId/bucket", message)
     }
 }

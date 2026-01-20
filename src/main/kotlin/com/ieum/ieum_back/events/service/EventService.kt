@@ -5,6 +5,7 @@ import com.ieum.ieum_back.events.dto.*
 import com.ieum.ieum_back.exception.NotFoundException
 import com.ieum.ieum_back.repository.EventRepository
 import com.ieum.ieum_back.repository.UserRepository
+import org.springframework.messaging.simp.SimpMessagingTemplate
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDateTime
@@ -14,7 +15,8 @@ import java.util.*
 @Transactional
 class EventService(
     private val eventRepository: EventRepository,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val messagingTemplate: SimpMessagingTemplate
 ) {
 
     fun createEvent(userId: UUID, request: CreateEventRequest): EventResponse {
@@ -35,7 +37,13 @@ class EventService(
             repeat = request.repeat
         )
 
-        return EventResponse.from(eventRepository.save(event))
+        val savedEvent = eventRepository.save(event)
+        val response = EventResponse.from(savedEvent)
+        
+        // WebSocket 브로드캐스트
+        broadcastScheduleSync(couple.id!!, "ADDED", response, userId)
+        
+        return response
     }
 
     @Transactional(readOnly = true)
@@ -77,7 +85,13 @@ class EventService(
         request.reminderMinutes?.let { event.reminderMinutes = it }
         request.repeat?.let { event.repeat = it }
 
-        return EventResponse.from(eventRepository.save(event))
+        val savedEvent = eventRepository.save(event)
+        val response = EventResponse.from(savedEvent)
+        
+        // WebSocket 브로드캐스트
+        broadcastScheduleSync(couple.id!!, "UPDATED", response, userId)
+        
+        return response
     }
 
     fun deleteEvent(userId: UUID, eventId: UUID) {
@@ -89,6 +103,24 @@ class EventService(
             ?: throw NotFoundException("Event not found")
 
         event.deletedAt = LocalDateTime.now()
-        eventRepository.save(event)
+        val savedEvent = eventRepository.save(event)
+        val response = EventResponse.from(savedEvent)
+        
+        // WebSocket 브로드캐스트
+        broadcastScheduleSync(couple.id!!, "DELETED", response, userId)
+    }
+    
+    /**
+     * 일정 WebSocket 실시간 동기화 브로드캐스트
+     */
+    private fun broadcastScheduleSync(coupleId: UUID, eventType: String, eventResponse: EventResponse, userId: UUID) {
+        val message = ScheduleSyncMessage(
+            eventType = eventType,
+            schedule = ScheduleDto.from(eventResponse),
+            userId = userId.toString(),
+            timestamp = LocalDateTime.now().toString()
+        )
+        
+        messagingTemplate.convertAndSend("/topic/couple/$coupleId/schedule", message)
     }
 }

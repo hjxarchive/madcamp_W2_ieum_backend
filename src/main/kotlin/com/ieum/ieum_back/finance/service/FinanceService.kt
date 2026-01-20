@@ -8,6 +8,7 @@ import com.ieum.ieum_back.repository.BudgetRepository
 import com.ieum.ieum_back.repository.ExpenseRepository
 import com.ieum.ieum_back.repository.UserRepository
 import org.springframework.data.domain.PageRequest
+import org.springframework.messaging.simp.SimpMessagingTemplate
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.math.BigDecimal
@@ -21,7 +22,8 @@ import java.util.*
 class FinanceService(
     private val expenseRepository: ExpenseRepository,
     private val budgetRepository: BudgetRepository,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val messagingTemplate: SimpMessagingTemplate
 ) {
 
     // Expense methods
@@ -40,7 +42,13 @@ class FinanceService(
             paidBy = request.paidBy
         )
 
-        return ExpenseResponse.from(expenseRepository.save(expense))
+        val savedExpense = expenseRepository.save(expense)
+        val response = ExpenseResponse.from(savedExpense)
+        
+        // WebSocket 브로드캐스트
+        broadcastFinanceSync(couple.id!!, "EXPENSE_ADDED", null, response, userId)
+        
+        return response
     }
 
     @Transactional(readOnly = true)
@@ -84,7 +92,13 @@ class FinanceService(
         request.date?.let { expense.date = it }
         request.paidBy?.let { expense.paidBy = it }
 
-        return ExpenseResponse.from(expenseRepository.save(expense))
+        val savedExpense = expenseRepository.save(expense)
+        val response = ExpenseResponse.from(savedExpense)
+        
+        // WebSocket 브로드캐스트
+        broadcastFinanceSync(couple.id!!, "EXPENSE_UPDATED", null, response, userId)
+        
+        return response
     }
 
     fun deleteExpense(userId: UUID, expenseId: UUID) {
@@ -96,7 +110,11 @@ class FinanceService(
             ?: throw NotFoundException("Expense not found")
 
         expense.deletedAt = LocalDateTime.now()
-        expenseRepository.save(expense)
+        val savedExpense = expenseRepository.save(expense)
+        val response = ExpenseResponse.from(savedExpense)
+        
+        // WebSocket 브로드캐스트
+        broadcastFinanceSync(couple.id!!, "EXPENSE_DELETED", null, response, userId)
     }
 
     // Budget methods
@@ -118,8 +136,12 @@ class FinanceService(
 
         val savedBudget = budgetRepository.save(budget)
         val (totalSpent, categorySpent) = calculateSpending(couple, yearMonth)
+        val response = BudgetResponse.from(savedBudget, totalSpent, categorySpent)
+        
+        // WebSocket 브로드캐스트
+        broadcastFinanceSync(couple.id!!, "BUDGET_UPDATED", response, null, userId)
 
-        return BudgetResponse.from(savedBudget, totalSpent, categorySpent)
+        return response
     }
 
     @Transactional(readOnly = true)
@@ -148,5 +170,26 @@ class FinanceService(
             .mapValues { (_, list) -> list.fold(BigDecimal.ZERO) { acc, e -> acc.add(e.amount) } }
 
         return Pair(totalSpent, categorySpent)
+    }
+    
+    /**
+     * 재무/예산 WebSocket 실시간 동기화 브로드캐스트
+     */
+    private fun broadcastFinanceSync(
+        coupleId: UUID, 
+        eventType: String, 
+        budgetResponse: BudgetResponse?, 
+        expenseResponse: ExpenseResponse?,
+        userId: UUID
+    ) {
+        val message = FinanceSyncMessage(
+            eventType = eventType,
+            budget = budgetResponse?.let { BudgetDto.from(it) },
+            expense = expenseResponse?.let { ExpenseDto.from(it) },
+            userId = userId.toString(),
+            timestamp = LocalDateTime.now().toString()
+        )
+        
+        messagingTemplate.convertAndSend("/topic/couple/$coupleId/finance", message)
     }
 }

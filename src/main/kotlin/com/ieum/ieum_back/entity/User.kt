@@ -49,6 +49,10 @@ class User(
     @Column(name = "is_active")
     var isActive: Boolean = true,
 
+    // E2EE 공개키 (Base64 인코딩된 공개키)
+    @Column(name = "public_key", length = 1000)
+    var publicKey: String? = null,
+
     @Column(name = "created_at")
     val createdAt: LocalDateTime = LocalDateTime.now(),
 

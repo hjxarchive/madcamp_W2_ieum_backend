@@ -16,7 +16,7 @@ spring:
 
 # Google OAuth 설정
 google:
-  client-id: 1088305482605-n4fnsouvlkf5md5ej2nllvpjuev666dd.apps.googleusercontent.com
+  client-id: 1088305482605-hfqq6q54rf00bns3l6bnamu9gl3cg27p.apps.googleusercontent.com
 
 # JWT 설정
 jwt:

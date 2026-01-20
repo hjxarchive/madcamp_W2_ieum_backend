@@ -1,5 +1,5 @@
 # 1. 자바 21 버전의 실행 환경을 가져옵니다.
-FROM openjdk:21-jdk-slim
+FROM eclipse-temurin:21-jdk-alpine
 
 # 2. 컨테이너 내부 작업 폴더를 /app으로 설정합니다.
 WORKDIR /app

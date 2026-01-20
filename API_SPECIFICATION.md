@@ -1,4 +1,6 @@
-# IEUM API Specification
+# IEUM API 명세서 (프론트엔드용)
+
+## 📌 기본 정보
 
 **Base URL:** `http://localhost:8080/api`
 
@@ -7,17 +9,42 @@
 Authorization: Bearer {accessToken}
 ```
 
+**공통 헤더 (인증 필요 시):**
+```
+X-User-Id: {UUID}
+```
+
+**응답 형식:** JSON
+
+---
+
+## 📋 목차
+
+1. [Auth (인증)](#1-auth-인증)
+2. [Users (사용자)](#2-users-사용자)
+3. [Couples (커플)](#3-couples-커플)
+4. [Events (일정)](#4-events-일정)
+5. [Budget (예산)](#5-budget-예산)
+6. [Expenses (지출)](#6-expenses-지출)
+7. [Buckets (버킷리스트)](#7-buckets-버킷리스트)
+8. [Memories (추억)](#8-memories-추억)
+9. [Chat (채팅)](#9-chat-채팅)
+10. [WebSocket (실시간 채팅)](#10-websocket-실시간-채팅)
+11. [MBTI (성격 테스트)](#11-mbti-성격-테스트)
+12. [Recommendations (추천)](#12-recommendations-추천)
+13. [D-days (디데이)](#13-d-days-디데이)
+14. [Files (파일)](#14-files-파일)
+15. [Enum 타입](#15-enum-타입)
+
 ---
 
 ## 1. Auth (인증)
 
 ### 1.1 Google 로그인
-Google OAuth를 통한 로그인/회원가입
 
-| 항목 | 내용 |
-|------|------|
-| **URL** | `POST /auth/google` |
-| **인증** | 불필요 |
+**Endpoint:** `POST /api/auth/google`  
+**인증:** 불필요  
+**설명:** Google OAuth를 통한 로그인/회원가입
 
 **Request Body:**
 ```json
@@ -871,6 +898,343 @@ Google OAuth를 통한 로그인/회원가입
   "size": 50
 }
 ```
+
+---
+
+## 10. WebSocket (실시간 채팅)
+
+### 10.1 WebSocket 연결
+
+**연결 URL:**
+```
+# 개발 환경
+ws://YOUR_EC2_PUBLIC_IP/ws/chat?token={JWT_TOKEN}
+
+# 프로덕션 환경 (SSL + 도메인)
+wss://your-domain.com/ws/chat?token={JWT_TOKEN}
+```
+
+**인증:** JWT 토큰을 Query Parameter로 전달
+
+**SockJS 폴백 지원:** ✅
+
+---
+
+### 10.2 STOMP 구독 (Subscribe)
+
+클라이언트가 메시지를 받기 위해 구독:
+
+```
+SUBSCRIBE /topic/couple/{coupleId}
+```
+
+**예시:**
+```
+SUBSCRIBE /topic/couple/660e8400-e29b-41d4-a716-446655440001
+```
+
+---
+
+### 10.3 메시지 전송 (Publish)
+
+```
+SEND /app/chat/{coupleId}
+```
+
+**Request Payload:**
+```json
+{
+  "type": "TEXT",
+  "content": "안녕하세요!",
+  "imageUrl": null,
+  "tempId": "client-temp-id-12345"
+}
+```
+
+**Response (브로드캐스트):**
+```json
+{
+  "id": "990e8400-e29b-41d4-a716-446655440005",
+  "senderId": "550e8400-e29b-41d4-a716-446655440000",
+  "senderName": "홍길동",
+  "senderProfileImage": "https://...",
+  "content": "안녕하세요!",
+  "type": "TEXT",
+  "imageUrl": null,
+  "isRead": false,
+  "readAt": null,
+  "createdAt": "2024-01-11T10:10:00",
+  "tempId": "client-temp-id-12345"
+}
+```
+
+---
+
+### 10.4 읽음 처리
+
+```
+SEND /app/chat/{coupleId}/read
+```
+
+**Request Payload:**
+```json
+[
+  "990e8400-e29b-41d4-a716-446655440005",
+  "990e8400-e29b-41d4-a716-446655440006"
+]
+```
+
+**Response (브로드캐스트):**
+```json
+{
+  "type": "READ_RECEIPT",
+  "messageIds": ["990e8400-e29b-41d4-a716-446655440005"],
+  "readAt": "2024-01-11T10:15:00"
+}
+```
+
+---
+
+### 10.5 타이핑 인디케이터
+
+```
+SEND /app/chat/{coupleId}/typing
+```
+
+**Response:**
+```json
+{
+  "type": "SYSTEM",
+  "event": "TYPING",
+  "userId": "550e8400-e29b-41d4-a716-446655440000",
+  "timestamp": "2024-01-11T10:10:00"
+}
+```
+
+---
+
+### 10.6 에러 응답
+
+```json
+{
+  "type": "ERROR",
+  "code": "SEND_FAILED",
+  "message": "메시지 전송에 실패했습니다",
+  "tempId": "client-temp-id-12345"
+}
+```
+
+---
+
+### 10.7 E2EE (암호화된 메시지)
+
+#### 10.7.1 공개키 등록
+
+```
+PUT /api/users/me/public-key
+Authorization: Bearer {JWT}
+Content-Type: application/json
+
+{
+  "publicKey": "base64_encoded_rsa_public_key"
+}
+```
+
+**Response:**
+```json
+{
+  "userId": "550e8400-e29b-41d4-a716-446655440000",
+  "publicKey": "base64_encoded_rsa_public_key",
+  "hasKey": true
+}
+```
+
+#### 10.7.2 상대방 공개키 조회
+
+```
+GET /api/users/partner/public-key
+Authorization: Bearer {JWT}
+```
+
+**Response:**
+```json
+{
+  "userId": "660e8400-e29b-41d4-a716-446655440001",
+  "publicKey": "base64_encoded_rsa_public_key",
+  "hasKey": true
+}
+```
+
+#### 10.7.3 E2EE 메시지 전송 (WebSocket)
+
+```
+SEND /app/chat/{coupleId}/e2ee
+```
+
+**Request Payload:**
+```json
+{
+  "type": "TEXT",
+  "encryptedContent": "base64_encrypted_message",
+  "encryptedKey": "base64_encrypted_aes_key",
+  "iv": "base64_initialization_vector",
+  "tempId": "client-temp-id-12345"
+}
+```
+
+**Response (브로드캐스트):**
+```json
+{
+  "id": "990e8400-e29b-41d4-a716-446655440005",
+  "senderId": "550e8400-e29b-41d4-a716-446655440000",
+  "senderName": "홍길동",
+  "senderProfileImage": "https://...",
+  "type": "TEXT",
+  "encryptedContent": "base64_encrypted_message",
+  "encryptedKey": "base64_encrypted_aes_key",
+  "iv": "base64_initialization_vector",
+  "isRead": false,
+  "readAt": null,
+  "createdAt": "2024-01-11T10:10:00",
+  "tempId": "client-temp-id-12345",
+  "isEncrypted": true
+}
+```
+
+**암호화 방식:**
+- **초기 키 교환**: RSA-2048 (공개키 암호화)
+- **메시지 암호화**: AES-256-GCM (커플당 공유 대칭키)
+- **서버**: 암호문만 저장/전달 (복호화 불가)
+
+---
+
+### 10.8 E2EE 공개키 관리 (REST API)
+
+#### 10.8.1 내 공개키 조회
+
+| 항목 | 내용 |
+|------|------|
+| **URL** | `GET /api/users/me/public-key` |
+| **인증** | 필요 |
+
+**Response (200 OK):**
+```json
+{
+  "hasKey": true,
+  "publicKey": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA..."
+}
+```
+
+**hasKey가 false인 경우:**
+```json
+{
+  "hasKey": false,
+  "publicKey": null
+}
+```
+
+---
+
+### 10.9 E2EE 공유 대칭키 관리 (REST API)
+
+#### 10.9.1 내 공유 대칭키 저장
+
+| 항목 | 내용 |
+|------|------|
+| **URL** | `POST /api/couples/me/shared-key` |
+| **인증** | 필요 |
+| **설명** | User1이 자신의 공개키로 암호화한 대칭키 저장 |
+
+**Request Body:**
+```json
+{
+  "encryptedSharedKey": "base64_encoded_encrypted_aes_key_for_me"
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "hasSharedKey": true,
+  "encryptedSharedKey": "base64_encoded_encrypted_aes_key_for_me"
+}
+```
+
+---
+
+#### 10.9.2 내 공유 대칭키 조회
+
+| 항목 | 내용 |
+|------|------|
+| **URL** | `GET /api/couples/me/shared-key` |
+| **인증** | 필요 |
+| **설명** | 내 공개키로 암호화된 대칭키 조회 (User2가 복호화하여 사용) |
+
+**Response (200 OK):**
+```json
+{
+  "hasSharedKey": true,
+  "encryptedSharedKey": "base64_encoded_encrypted_aes_key_for_me"
+}
+```
+
+**대칭키가 없는 경우:**
+```json
+{
+  "hasSharedKey": false,
+  "encryptedSharedKey": null
+}
+```
+
+---
+
+#### 10.9.3 상대방 공유 대칭키 저장
+
+| 항목 | 내용 |
+|------|------|
+| **URL** | `POST /api/couples/partner/shared-key` |
+| **인증** | 필요 |
+| **설명** | User1이 User2의 공개키로 암호화한 대칭키 저장 |
+
+**Request Body:**
+```json
+{
+  "encryptedSharedKey": "base64_encoded_encrypted_aes_key_for_partner"
+}
+```
+
+**Response (200 OK):**
+```json
+{
+  "hasSharedKey": true,
+  "encryptedSharedKey": "base64_encoded_encrypted_aes_key_for_partner"
+}
+```
+
+---
+
+### 10.10 E2EE 초기화 플로우
+
+#### User1 (초대 코드 생성자):
+
+1. **RSA 키 쌍 생성** → 로컬 저장
+2. **공개키 등록**: `PUT /api/users/me/public-key`
+3. **상대방 공개키 조회**: `GET /api/users/partner/public-key` (재시도)
+4. **AES 대칭키 생성** → 로컬 저장
+5. **내 것 암호화 저장**: `POST /api/couples/me/shared-key`
+6. **상대방 것 암호화 저장**: `POST /api/couples/partner/shared-key`
+
+#### User2 (초대 코드 입력자):
+
+1. **RSA 키 쌍 생성** → 로컬 저장
+2. **공개키 등록**: `PUT /api/users/me/public-key`
+3. **암호화된 대칭키 조회**: `GET /api/couples/me/shared-key` (재시도)
+4. **개인키로 복호화** → 대칭키 획득 → 로컬 저장
+
+#### 이후 메시지 송수신:
+
+- **송신**: 공유 대칭키로 AES 암호화 → WebSocket 전송
+- **수신**: WebSocket 수신 → 공유 대칭키로 AES 복호화
 
 ---
 

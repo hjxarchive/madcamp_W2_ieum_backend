@@ -30,6 +30,19 @@ class ChatMessage(
     @Column(name = "image_url", length = 500)
     var imageUrl: String? = null,
 
+    // E2EE 관련 필드
+    @Column(name = "is_encrypted")
+    var isEncrypted: Boolean = false,
+
+    @Column(name = "encrypted_content", columnDefinition = "text")
+    var encryptedContent: String? = null,  // 암호화된 메시지
+
+    @Column(name = "encrypted_key", columnDefinition = "text")
+    var encryptedKey: String? = null,  // 암호화된 세션키
+
+    @Column(name = "iv", length = 500)
+    var iv: String? = null,  // 초기화 벡터
+
     @Column(name = "is_read")
     var isRead: Boolean = false,
 

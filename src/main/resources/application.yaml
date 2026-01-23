@@ -37,3 +37,15 @@ jwt:
 app:
   file:
     base-url: ${FILE_BASE_URL:http://localhost:8080/api/files}
+
+# Swagger/OpenAPI 설정
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+    enabled: true
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    operationsSorter: method
+    tagsSorter: alpha
+    displayRequestDuration: true

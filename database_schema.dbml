@@ -1,0 +1,160 @@
+// 이음(Ieum) 데이터베이스 스키마
+// dbdiagram.io에서 시각화 가능
+
+Table users {
+  id uuid [pk, default: `gen_random_uuid()`]
+  email varchar(255) [unique, not null]
+  name varchar(100) [not null]
+  nickname varchar(50)
+  google_id varchar(255) [unique]
+  profile_image text
+  mbti_type varchar(4) [note: 'MDEP, ITCF 등']
+  mbti_answers jsonb [note: '{"1":"A", "2":"B", ...}']
+  public_key text [note: 'RSA 공개키']
+  couple_id uuid
+  birthday date
+  gender varchar(10)
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP`]
+  is_active boolean [default: true]
+  
+  indexes {
+    email
+    google_id
+  }
+}
+
+Table couples {
+  id uuid [pk, default: `gen_random_uuid()`]
+  user1_id uuid [not null]
+  user2_id uuid [not null]
+  anniversary date
+  invite_code varchar(6) [unique, not null, note: '6자리 랜덤 코드']
+  invite_expires_at timestamp
+  encrypted_shared_key_user1 text [note: 'User1의 RSA로 암호화된 AES 키']
+  encrypted_shared_key_user2 text [note: 'User2의 RSA로 암호화된 AES 키']
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+  deleted_at timestamp
+  
+  indexes {
+    invite_code
+  }
+}
+
+Table events {
+  id uuid [pk, default: `gen_random_uuid()`]
+  couple_id uuid [not null]
+  created_by uuid [not null]
+  title varchar(255) [not null]
+  date timestamp [not null]
+  is_recurring boolean [default: false]
+  recurrence varchar(50)
+  notification varchar(50)
+  event_type varchar(50)
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+  
+  indexes {
+    (couple_id, date) [name: 'idx_events_couple_date']
+  }
+}
+
+Table chat_messages {
+  id uuid [pk, default: `gen_random_uuid()`]
+  couple_id uuid [not null]
+  sender_id uuid [not null]
+  content text [not null, note: '암호화된 메시지']
+  sent_at timestamp [default: `CURRENT_TIMESTAMP`]
+  is_encrypted boolean [default: true]
+  
+  indexes {
+    (couple_id, sent_at) [name: 'idx_chat_messages_couple_sent']
+  }
+}
+
+Table buckets {
+  id uuid [pk, default: `gen_random_uuid()`]
+  couple_id uuid [not null]
+  created_by uuid [not null]
+  title varchar(255) [not null]
+  description text
+  is_completed boolean [default: false]
+  completed_at timestamp
+  target_date date
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+}
+
+Table expenses {
+  id uuid [pk, default: `gen_random_uuid()`]
+  couple_id uuid [not null]
+  created_by uuid [not null]
+  category varchar(50) [not null]
+  amount decimal(15,2) [not null]
+  description text
+  expense_date date [not null]
+  payment_method varchar(50)
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+  
+  indexes {
+    (couple_id, expense_date) [name: 'idx_expenses_couple_date']
+  }
+}
+
+Table memories {
+  id uuid [pk, default: `gen_random_uuid()`]
+  couple_id uuid [not null]
+  created_by uuid [not null]
+  title varchar(255) [not null]
+  content text
+  memory_date date [not null]
+  location varchar(255)
+  photo_url text
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+}
+
+Table budgets {
+  id uuid [pk, default: `gen_random_uuid()`]
+  couple_id uuid [not null]
+  month varchar(7) [not null, note: 'YYYY-MM']
+  category varchar(50) [not null]
+  budget_amount decimal(15,2) [not null]
+  spent_amount decimal(15,2) [default: 0]
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+  updated_at timestamp [default: `CURRENT_TIMESTAMP`]
+}
+
+Table recommendations {
+  id uuid [pk, default: `gen_random_uuid()`]
+  couple_id uuid [not null]
+  title varchar(255) [not null]
+  description text
+  category varchar(50)
+  location varchar(255)
+  price_range varchar(50)
+  rating decimal(3,2)
+  image_url text
+  created_at timestamp [default: `CURRENT_TIMESTAMP`]
+}
+
+// Relationships
+Ref: users.couple_id > couples.id
+Ref: couples.user1_id > users.id
+Ref: couples.user2_id > users.id
+
+Ref: events.couple_id > couples.id
+Ref: events.created_by > users.id
+
+Ref: chat_messages.couple_id > couples.id
+Ref: chat_messages.sender_id > users.id
+
+Ref: buckets.couple_id > couples.id
+Ref: buckets.created_by > users.id
+
+Ref: expenses.couple_id > couples.id
+Ref: expenses.created_by > users.id
+
+Ref: memories.couple_id > couples.id
+Ref: memories.created_by > users.id
+
+Ref: budgets.couple_id > couples.id
+
+Ref: recommendations.couple_id > couples.id

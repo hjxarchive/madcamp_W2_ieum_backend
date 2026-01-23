@@ -23,6 +23,11 @@ class WebMvcConfig(
                 "/api/users",            // 회원가입 (POST)
                 "/api/health",           // 헬스체크
                 "/api/mbti/questions",   // MBTI 질문 조회
+                // Swagger UI 경로
+                "/swagger-ui/**",
+                "/v3/api-docs/**",
+                "/swagger-resources/**",
+                "/webjars/**"
             )
     }
 
